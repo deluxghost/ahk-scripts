@@ -53,6 +53,11 @@ if ErrorLevel {
     Send, ^+{Home}
 }
 return
+; Win-w Rime schema switcher
+#w::
+; Ctrl-Shift-End (my IME hotkey)
+Send, ^+{End}
+return
 
 ; Disable Numlock key
 ~NumLock::
