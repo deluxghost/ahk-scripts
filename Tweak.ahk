@@ -50,7 +50,7 @@ if ErrorLevel {
     KeyWait, Capslock
 } else {
     ; Ctrl-Shift-Home (my IME hotkey)
-    Send, ^!{Home}
+    Send, ^+{Home}
 }
 return
 
