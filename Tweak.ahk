@@ -49,8 +49,8 @@ if ErrorLevel {
     SetCapsLockState, On
     KeyWait, Capslock
 } else {
-    ; Ctrl-Space
-    Send, ^{space}
+    ; Ctrl-Shift-Home (my IME hotkey)
+    Send, ^!{Home}
 }
 return
 
