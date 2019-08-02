@@ -15,8 +15,6 @@ DetectHiddenWindows, On
 SetTimer, NoExtWarning, 50
 return
 
-
-
 MouseIsOver(WinTitle) {
     MouseGetPos,,, Win
     return WinExist(WinTitle . " ahk_id " . Win)
