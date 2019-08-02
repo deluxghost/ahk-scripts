@@ -6,6 +6,7 @@ SetWorkingDir %A_ScriptDir%
 _locale_ := "zh_CN"
 #Include %A_ScriptDir%\lib\i18n.ahk
 #Include %A_ScriptDir%\lib\Uri.ahk
+#Include %A_ScriptDir%\lib\PaF.ahk
 
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
@@ -14,7 +15,6 @@ DetectHiddenWindows, On
 SetTimer, NoExtWarning, 50
 return
 
-#Include %A_ScriptDir%\lib\PaF.ahk
 
 
 MouseIsOver(WinTitle) {
@@ -79,7 +79,7 @@ Send, {Left}{Right}
 return
 
 ; Win-z to minimize window
-#If not WinActive("ahk_class WorkerW")
+#If !WinActive("ahk_class WorkerW")
     #z::
     WinGet, active_id, ID, A
     WinMinimize, ahk_id %active_id%
@@ -87,7 +87,7 @@ return
 #If
 
 ; Win-s to Always-on-Top
-#If not WinActive("ahk_class WorkerW") and not WinActive("ahk_class Shell_TrayWnd")
+#If !WinActive("ahk_class WorkerW") and not WinActive("ahk_class Shell_TrayWnd")
     #s::
     Winset, Alwaysontop,, A
     return
@@ -95,15 +95,16 @@ return
 
 ; Win-f to google text
 #f::
-clip_bak := ClipBoardAll
-ClipBoard := ""
+clip_bak := ClipboardAll
+Clipboard := ""
 Send, ^c
 ClipWait, .5
-if not ErrorLevel and ClipBoard != "" {
-    query := UriEncode(Trim(ClipBoard))
+if !ErrorLevel and Clipboard != "" {
+    query := UriEncode(Trim(Clipboard))
     Run, https://www.google.com/search?q=%query%
 }
-ClipBoard := clip_bak
+Clipboard := clip_bak
+clip_bak := ""
 return
 
 ; Scroll mouse wheel on taskbar to change system volume
@@ -123,3 +124,28 @@ return
 Send, https://reddit.com/r//
 Send, {Left}
 return
+
+; Paste as file (Windows Explorer)
+#If WinActive("ahk_class CabinetWClass") or WinActive("ahk_class ExploreWClass")
+    ~^v::
+    save_hWnd := WinExist("A")
+    ControlGetFocus, save_focus, ahk_id %save_hWnd%
+    ; Not editing
+    if save_focus not in Edit1,Edit2,DirectUIHWND1
+        for window in ComObjCreate("Shell.Application").Windows {
+            if (window.HWND == save_hWnd) {
+                PasteAsFileInPath(window.Document.Folder.Self.Path)
+            }
+        }
+    return
+#If
+; Paste as file (Desktop)
+#If WinActive("ahk_class WorkerW")
+    ~^v::
+    save_hWnd := WinExist("A")
+    ControlGetFocus, save_focus, ahk_id %save_hWnd%
+    ; Not editing
+    if save_focus not in Edit1,Edit2,DirectUIHWND1
+        PasteAsFileInPath(A_Desktop)
+    return
+#If
