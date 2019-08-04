@@ -1,4 +1,4 @@
-#Persistent
+﻿#Persistent
 #InstallKeybdHook
 #SingleInstance force
 SetWorkingDir %A_ScriptDir%
@@ -47,14 +47,9 @@ if ErrorLevel {
     SetCapsLockState, On
     KeyWait, Capslock
 } else {
-    ; Ctrl-Shift-Home (my IME hotkey)
-    Send, ^+{Home}
+    ; Win-Space
+    Send, #{Space}
 }
-return
-; Win-w Rime schema switcher
-#w::
-; Ctrl-Shift-End (my IME hotkey)
-Send, ^+{End}
 return
 
 ; Disable Numlock key
