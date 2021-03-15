@@ -6,14 +6,29 @@ SetWorkingDir %A_ScriptDir%
 _locale_ := "zh_CN"
 #Include %A_ScriptDir%\lib\i18n.ahk
 #Include %A_ScriptDir%\lib\Uri.ahk
-#Include %A_ScriptDir%\lib\PaF.ahk
+#Include %A_ScriptDir%\lib\VA.ahk
 
 CoordMode, Mouse, Screen
 SetTitleMatchMode, 3
 DetectHiddenWindows, On
 
+IniRead, SyncDevicesConf, % A_ScriptDir . "\tweak.ini", Tweak, SyncDevices
+SyncDevicesList := StrSplit(SyncDevicesConf, ";")
+
 SetTimer, NoExtWarning, 50
+SetTimer, SyncVolume, 50
 return
+
+RemoveToolTip:
+SetTimer, RemoveToolTip, Off
+ToolTip
+return
+
+MsgToolTip(msg, timeout:=1000)
+{
+    ToolTip, % msg
+    SetTimer, RemoveToolTip, % timeout
+}
 
 MouseIsOver(WinTitle) {
     MouseGetPos,,, Win
@@ -118,27 +133,62 @@ Send, https://reddit.com/r//
 Send, {Left}
 return
 
-; Paste as file (Windows Explorer)
-#If WinActive("ahk_class CabinetWClass") or WinActive("ahk_class ExploreWClass")
+; Quick source engine launch options with "res//"
+; e.g. -windowed -noborder -w 1920 -h 1080
+#If WinActive("ahk_class vguiPopupWindow")
+:*:res//::
+Send, -windowed -noborder -w %A_ScreenWidth% -h %A_ScreenHeight%
+return
+#If
+
+; Quick "map workshop/" command with "ws//"
+#If WinActive("ahk_exe hl2.exe")
+:*:ws//::
+Send, map workshop/
+return
+#If
+
+; Before pasting Steam protocal URL to develop console in source engine games, convert it to "connect" command
+; e.g. "steam://connect/[ip]:[port]" => "connect [ip]:[port]"
+; e.g. "steam://connect/[ip]:[port]/[password]" => "connect [ip]:[port]; password [password]"
+#If WinActive("ahk_exe hl2.exe")
     ~^v::
-    save_hWnd := WinExist("A")
-    ControlGetFocus, save_focus, ahk_id %save_hWnd%
-    ; Not editing
-    if save_focus not in Edit1,Edit2,DirectUIHWND1
-        for window in ComObjCreate("Shell.Application").Windows {
-            if (window.HWND == save_hWnd) {
-                PasteAsFileInPath(window.Document.Folder.Self.Path)
-            }
+    if (!DllCall("IsClipboardFormatAvailable", "Uint",1) and !DllCall("IsClipboardFormatAvailable", "Uint",13)) {
+        return
+    }
+    if (Clipboard == "") {
+        return
+    }
+    m := RegExMatch(Clipboard, "O)^steam://connect/([^/]+)(?:/(.*))?$", mat)
+    if (m <= 0) {
+        return
+    }
+    global tfclipsave := Clipboard
+    Clipboard := "connect " . mat.Value(1)
+    if (mat.Value(2) != "") {
+        Clipboard := Clipboard . "; password "  . mat.Value(2)
+    }
+    SetTimer, TFReCopy, -50
+    return
+#If
+
+TFReCopy:
+Clipboard := tfclipsave
+return
+
+; Sync master volume of default device with specific devices
+SyncVolume:
+volume := VA_GetMasterVolume()
+if (volume != "") {
+    for index, device in SyncDevicesList {
+        if (device == "") {
+            continue
         }
-    return
-#If
-; Paste as file (Desktop)
-#If WinActive("ahk_class WorkerW")
-    ~^v::
-    save_hWnd := WinExist("A")
-    ControlGetFocus, save_focus, ahk_id %save_hWnd%
-    ; Not editing
-    if save_focus not in Edit1,Edit2,DirectUIHWND1
-        PasteAsFileInPath(A_Desktop)
-    return
-#If
+        dev_volume := VA_GetMasterVolume("", device)
+        if (dev_volume == volume) {
+            continue
+        }
+        VA_SetMasterVolume(volume, "", device)
+    }
+}
+return
